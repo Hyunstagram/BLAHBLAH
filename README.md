@@ -1,12 +1,10 @@
 ### 블라블라
-#### - 실시간 영상에서 객체를 검출해 target 외의 객체 블러 처리 후 송출
-- :computer: python, Tensorflow, PHP
-- :books: Machine learning project
+#### - 실시간 영상 송출 시 객체를 검출하여 target 외의 객체 블러 처리
+- :computer: Python, TensorFlow, OpenCV, PHP
+- :books: Deep Learning Project
 
 ```
 pip install opencv-python
-pip install opencv-contrib-python
-pip install dlib
-pip install face_recognition
-pip install imutils
+pip install cvlib
+pip install tensorflow   
  ```
