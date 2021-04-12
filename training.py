@@ -7,8 +7,8 @@ from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
  
  
-path_dir1 = './nontarget/'
-path_dir2 = './target/'
+path_dir1 = './target/'
+path_dir2 = './nontarget/'
  
 file_list1 = os.listdir(path_dir1) # path에 존재하는 파일 목록 가져오기
 file_list2 = os.listdir(path_dir2)

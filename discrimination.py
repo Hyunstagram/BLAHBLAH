@@ -96,8 +96,8 @@ while webcam.isOpened():
             x = preprocess_input(x)
             
             prediction = model.predict(x)
- 
-            if prediction >= 0.7: # 타켓 판별
+            print(prediction)
+            if prediction < 0.1: # 타켓 판별
                 cv2.rectangle(frame, (startX,startY), (endX,endY), (0,0,255), 2)
                 Y = startY - 10 if startY - 10 > 10 else startY + 10
                 text = "target ({:.2f}%)".format((1 - prediction[0][0])*100)
