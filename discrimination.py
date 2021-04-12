@@ -6,13 +6,16 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.applications.resnet50 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
 from PIL import ImageFont, ImageDraw, Image
-
+import time
 
 model = load_model('model.h5')
 model.summary()
 
-print("원하는 이모지를 선택하세요!")
-flag=input("1. 기쁨 2 슬픔 3. 하트 4. 생일 5. 왕관 ==> ")
+print("웹캠 연결을 선택하세요!")
+cam_flag=input("1. 내장 웹캠 2. 앱으로 연결 ==> ")
+
+print("원하는 모드를 선택하세요!")
+flag=input("1. 기쁨 2. 슬픔 3. 하트 4. 생일 5. 왕관 6. 블러모드 ==> ")
 
 if flag=='1':
     src2=cv2.imread('img/smile.png',-1)
@@ -24,7 +27,6 @@ elif flag=='4':
     src2=cv2.imread('img/birthday.png',-1)
 elif flag=='5':
     src2=cv2.imread('img/crown.png',-1)
-
 
 def transparent_overlay(src ,overlay ,pos=(0,0) ,scale=1):
     """
@@ -56,67 +58,153 @@ def transparent_overlay(src ,overlay ,pos=(0,0) ,scale=1):
 
     return src
 
+webcam=0
+prev_time = 0
+current_time=0
+fps = 0
 
-# open webcam
-webcam = cv2.VideoCapture(0)
+if(webcam==0):
+    print("Webcam Loading--!")
+
+if cam_flag=='1':
+    # open webcam
+    webcam = cv2.VideoCapture(0)
 
 
-if not webcam.isOpened():
-    print("Could not open webcam")
-    exit()
-    
-
-# loop through frames
-while webcam.isOpened():
-
-    # read frame from webcam 
-    status, frame = webcam.read()
-    
-    if not status:
-        print("Could not read frame")
+    if not webcam.isOpened():
+        print("Could not open webcam")
         exit()
-
-    # apply face detection
-    face, confidence = cv.detect_face(frame)
-
-    # loop through detected faces
-    for idx, f in enumerate(face):
         
-        (startX, startY) = f[0], f[1]
-        (endX, endY) = f[2], f[3]
-        
-        if 0 <= startX <= frame.shape[1] and 0 <= endX <= frame.shape[1] and 0 <= startY <= frame.shape[0] and 0 <= endY <= frame.shape[0]:
-            
-            face_region = frame[startY:endY, startX:endX]
-            
-            face_region1 = cv2.resize(face_region, (224, 224), interpolation = cv2.INTER_AREA)
-            
-            x = img_to_array(face_region1)
-            x = np.expand_dims(x, axis=0)
-            x = preprocess_input(x)
-            
-            prediction = model.predict(x)
-            print(prediction)
-            if prediction < 0.1: # 타켓 판별
-                cv2.rectangle(frame, (startX,startY), (endX,endY), (0,0,255), 2)
-                Y = startY - 10 if startY - 10 > 10 else startY + 10
-                text = "target ({:.2f}%)".format((1 - prediction[0][0])*100)
-                cv2.putText(frame, text, (startX,Y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
-                
-            else: # 논타켓 판별
-                roi = frame[startY:endY, startX:endX] # 관심영역 지정
-                roi = cv2.GaussianBlur(roi, (0, 0), 3) # 블러(모자이크) 처리
-                frame[startY:endY, startX:endX] = roi 
-                src = cv2.resize(src2, dsize=(endX - startX,(endY - startY)), interpolation=cv2.INTER_AREA)
-                frame = transparent_overlay(frame, src, (startX, startY))
-                
-    # display output
-    cv2.imshow("target classify", frame)
 
-    # press "Q" to stop
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    # loop through frames
+    while webcam.isOpened():
+
+        # read frame from webcam 
+        status, frame = webcam.read()
+        
+        if not status:
+            print("Could not read frame")
+            exit()
+
+        # apply face detection
+        face, confidence = cv.detect_face(frame)
+
+        # loop through detected faces
+        for idx, f in enumerate(face):
+            
+            (startX, startY) = f[0], f[1]
+            (endX, endY) = f[2], f[3]
+            
+            if 0 <= startX <= frame.shape[1] and 0 <= endX <= frame.shape[1] and 0 <= startY <= frame.shape[0] and 0 <= endY <= frame.shape[0]:
+                
+                face_region = frame[startY:endY, startX:endX]
+                
+                face_region1 = cv2.resize(face_region, (224, 224), interpolation = cv2.INTER_AREA)
+                
+                x = img_to_array(face_region1)
+                x = np.expand_dims(x, axis=0)
+                x = preprocess_input(x)
+                
+                prediction = model.predict(x)
+                print(prediction)
+                if prediction < 0.1: # 타켓 판별
+                    cv2.rectangle(frame, (startX,startY), (endX,endY), (0,0,255), 2)
+                    Y = startY - 10 if startY - 10 > 10 else startY + 10
+                    text = "target ({:.2f}%)".format((1 - prediction[0][0])*100)
+                    cv2.putText(frame, text, (startX,Y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
+                    
+                else: # 논타켓 판별
+                    roi = frame[startY:endY, startX:endX] # 관심영역 지정
+                    if flag=='6':
+                        roi = cv2.GaussianBlur(roi, (0, 0), 3) # 블러(모자이크) 처리
+                        frame[startY:endY, startX:endX] = roi 
+                    else:
+                        frame[startY:endY, startX:endX] = roi 
+                        src = cv2.resize(src2, dsize=(endX - startX,(endY - startY)), interpolation=cv2.INTER_AREA)
+                        frame = transparent_overlay(frame, src, (startX, startY))
+                    
+        # display output
+        cv2.imshow("target classify", frame)
+
+        # press "Q" to stop
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        
+    # release resources
+    webcam.release()
+    cv2.destroyAllWindows() 
     
-# release resources
-webcam.release()
-cv2.destroyAllWindows() 
+elif cam_flag=='2':
+    # open webcam
+    # 앱으로 연결 시 url
+    url='rtsp://192.168.0.19:8080/h264_ulaw.sdp'
+
+    webcam = cv2.VideoCapture(url)
+
+    if not webcam.isOpened():
+        print("Could not open webcam")
+        exit()
+        
+    # loop through frames
+    while webcam.isOpened():
+
+        # read frame from webcam 
+        status, frame = webcam.read()
+        
+        if not status:
+            print("Could not read frame")
+            exit()
+        current_time = time.time() - prev_time
+
+        if fps % 3 == 0:
+            
+        # if (status is True) and (current_time > 1./ 3) :        
+        # apply face detection
+            face, confidence = cv.detect_face(frame)
+
+            # loop through detected faces
+            for idx, f in enumerate(face):
+                
+                (startX, startY) = f[0], f[1]
+                (endX, endY) = f[2], f[3]
+                
+                if 0 <= startX <= frame.shape[1] and 0 <= endX <= frame.shape[1] and 0 <= startY <= frame.shape[0] and 0 <= endY <= frame.shape[0]:
+                    
+                    face_region = frame[startY:endY, startX:endX]
+                    
+                    face_region1 = cv2.resize(face_region, (224, 224), interpolation = cv2.INTER_AREA)
+                    
+                    x = img_to_array(face_region1)
+                    x = np.expand_dims(x, axis=0)
+                    x = preprocess_input(x)
+                    
+                    prediction = model.predict(x)
+                    print(prediction)
+                    if prediction < 0.3: # 타켓 판별
+                        cv2.rectangle(frame, (startX,startY), (endX,endY), (0,0,255), 2)
+                        Y = startY - 10 if startY - 10 > 10 else startY + 10
+                        text = "target ({:.2f}%)".format((1 - prediction[0][0])*100)
+                        cv2.putText(frame, text, (startX,Y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
+                        
+                    else: # 논타켓 판별
+                        roi = frame[startY:endY, startX:endX] # 관심영역 지정
+                        if flag=='6':
+                            roi = cv2.GaussianBlur(roi, (0, 0), 3) # 블러(모자이크) 처리
+                            frame[startY:endY, startX:endX] = roi 
+                        else:
+                            frame[startY:endY, startX:endX] = roi 
+                            src = cv2.resize(src2, dsize=(endX - startX,(endY - startY)), interpolation=cv2.INTER_AREA)
+                            frame = transparent_overlay(frame, src, (startX, startY))
+                    prev_time = time.time()
+
+            cv2.imshow("target classify", frame)
+
+        # press "Q" to stop
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+        fps = fps + 1
+        
+    # release resources
+    webcam.release()
+    cv2.destroyAllWindows() 

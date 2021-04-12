@@ -1,6 +1,6 @@
 import cv2
 import cvlib as cv
- 
+
 # open webcam (웹캠 열기)
 webcam = cv2.VideoCapture(0)
  
